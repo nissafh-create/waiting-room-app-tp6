@@ -1,24 +1,28 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:waiting_room_app/geolocation_service.dart';
-import 'package:waiting_room_app/local_queue_service.dart';
-import 'package:waiting_room_app/queue_provider.dart';
+import 'package:waiting_room_app/models/client.dart';
+import 'package:waiting_room_app/providers/queue_provider.dart';
+import 'package:waiting_room_app/repositories/queue_repository.dart';
 
 import 'queue_provider_geolocation_test.mocks.dart';
 
-@GenerateMocks([GeolocationService, QueueProvider])
+class FakeQueueRepository extends Fake implements QueueRepository {
+  @override
+  Future<void> registerOnServer(Client client) async {}
+
+  @override
+  Future<void> deleteOnServer(String id) async {}
+
+  @override
+  Future<List<Client>> fetchPage({required int offset, required int limit}) async => [];
+}
+
 void main() {
   setUpAll(() {
     TestWidgetsFlutterBinding.ensureInitialized();
     databaseFactory = databaseFactoryFfi;
-  });
-
-  setUp(() async {
-    final db = await LocalQueueService(inMemory: true).database;
-    await db.delete(LocalQueueService.tableName);
   });
 
   test('addClient saves client with geolocation', () async {
@@ -39,13 +43,13 @@ void main() {
     when(mockGeo.getCurrentPosition()).thenAnswer((_) async => mockPos);
 
     final provider = QueueProvider(
-      geoService: mockGeo,
-      localDb: LocalQueueService(inMemory: true),
+      FakeQueueRepository(),
+      mockGeo,
     );
 
     await provider.addClient('Test User');
 
-    final client = provider.clients.last;
+    final client = provider.clients.first;
     expect(client['lat'], 37.7749);
     expect(client['lng'], -122.4194);
   });

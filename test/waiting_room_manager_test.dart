@@ -1,13 +1,25 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:waiting_room_app/geolocation_service.dart';
-import 'package:waiting_room_app/local_queue_service.dart';
-import 'package:waiting_room_app/queue_provider.dart';
+import 'package:waiting_room_app/models/client.dart';
+import 'package:waiting_room_app/providers/queue_provider.dart';
+import 'package:waiting_room_app/repositories/queue_repository.dart';
+import 'package:waiting_room_app/services/geolocation_service.dart';
 
 class FakeGeolocationService extends Fake implements GeolocationService {
   @override
   Future<Position?> getCurrentPosition() async => null;
+}
+
+class FakeQueueRepository extends Fake implements QueueRepository {
+  @override
+  Future<void> registerOnServer(Client client) async {}
+
+  @override
+  Future<void> deleteOnServer(String id) async {}
+
+  @override
+  Future<List<Client>> fetchPage({required int offset, required int limit}) async => [];
 }
 
 void main() {
@@ -16,14 +28,10 @@ void main() {
     databaseFactory = databaseFactoryFfi;
   });
 
-  setUp(() async {
-    await LocalQueueService(inMemory: true).close();
-  });
-
   test('should add a client to the waiting list', () async {
     final manager = QueueProvider(
-      geoService: FakeGeolocationService(),
-      localDb: LocalQueueService(inMemory: true),
+      FakeQueueRepository(),
+      FakeGeolocationService(),
     );
 
     await manager.addClient('Ahmed haddad');
@@ -34,8 +42,8 @@ void main() {
 
   test('should remove a client from the waiting list', () async {
     final manager = QueueProvider(
-      geoService: FakeGeolocationService(),
-      localDb: LocalQueueService(inMemory: true),
+      FakeQueueRepository(),
+      FakeGeolocationService(),
     );
     await manager.addClient('Client 1');
     await manager.addClient('Client 2');
@@ -49,8 +57,8 @@ void main() {
 
   test('should remove the first client when nextClient() is called', () async {
     final manager = QueueProvider(
-      geoService: FakeGeolocationService(),
-      localDb: LocalQueueService(inMemory: true),
+      FakeQueueRepository(),
+      FakeGeolocationService(),
     );
     await manager.addClient('Client 1');
     await manager.addClient('Client 2');
